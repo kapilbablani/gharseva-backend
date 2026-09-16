@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     cognito_user_pool_id: str
     cognito_app_client_id: str
     aws_region: str
+    database_url: str = "sqlite:///./gharseva.db"
 
     class Config:
         env_file = ".env"
