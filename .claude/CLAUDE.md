@@ -58,12 +58,28 @@ gharseva-backend/
 
 ---
 
+## Identity and roles
+
+- Role (customer vs electrician) is represented via **Cognito Groups**, not a custom attribute. There is no `custom:role` field on this User Pool.
+- Two groups exist: `customer` and `electrician`.
+- A user's group membership appears in their verified token as the `cognito:groups` claim (a list of group names). Always read role from this claim, never from a custom attribute or from anything client-supplied.
+
+---
+
 ## SDD workflow
 
 - Every new feature starts as a spec in `specs/<feature-name>.md` before any code is written
 - A spec must state: scope (what it covers and explicitly does not cover), inputs/config needed, expected behavior per endpoint, and any non-functional requirements (logging, caching, error format)
 - Do not implement beyond what the active spec describes, flag anything that seems missing from the spec instead of assuming
 - Since the project is empty, the very first task is creating the folder structure above with empty `__init__.py` files, this does not need its own spec, everything after it does
+
+---
+
+## Implementation workflow
+
+- When asked to implement a spec, work through the files it introduces one at a time, in the order they're introduced in the spec.
+- After finishing each file, stop and summarize: what was implemented, any assumptions made, and any deviation from the spec. Do not proceed to the next file until the human has reviewed and confirmed the current one.
+- If a spec is ambiguous or missing something needed to implement a file, stop and ask rather than guessing.
 
 ---
 
@@ -101,8 +117,8 @@ Run tests with output visible:
 
 | Route | Status |
 |---|---|
-| `GET /auth/me` | Not started |
-| `POST /auth/logout` | Not started |
+| `GET /auth/me` | Implemented |
+| `POST /auth/logout` | Implemented |
 
 **Nothing is implemented yet. Do not implement any route unless an active spec explicitly targets it.**
 
@@ -111,7 +127,7 @@ Run tests with output visible:
 ## Warnings and things to avoid
 
 - **Never accept or store a raw password** — Cognito owns credentials entirely, the backend only ever sees tokens
-- **Never trust a role or user ID sent in a request body** — always read identity/role from the verified token's claims, never from client-supplied fields
+- **Never trust a role or user ID sent in a request body** — always read identity/role from the verified token's `cognito:groups` claim, never from client-supplied fields
 - **Never log a full token or secret value** — log the request path and outcome, not the Authorization header contents
 - **Never hardcode Cognito User Pool ID, Client ID, or AWS region** — always read from `app/core/config.py`
 - **Fetch Cognito's JWKS once and cache it** — never re-fetch the public keys on every single request
