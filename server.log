@@ -4,3 +4,9 @@ INFO:     Started reloader process [25852] using WatchFiles
 INFO:     Started server process [5496]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
+INFO:     127.0.0.1:62281 - "POST /auth/logout HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:53959 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53963 - "POST /auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55458 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56120 - "POST /auth/logout HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:56124 - "GET /auth/me HTTP/1.1" 401 Unauthorized
