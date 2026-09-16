@@ -10,3 +10,7 @@ INFO:     127.0.0.1:53963 - "POST /auth/logout HTTP/1.1" 200 OK
 INFO:     127.0.0.1:55458 - "GET /auth/me HTTP/1.1" 200 OK
 INFO:     127.0.0.1:56120 - "POST /auth/logout HTTP/1.1" 401 Unauthorized
 INFO:     127.0.0.1:56124 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+WARNING:  WatchFiles detected changes in 'app\db\__init__.py'. Reloading...
+ INFO:     127.0.0.1:52088 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61020 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55780 - "POST /users/me HTTP/1.1" 404 Not Found
