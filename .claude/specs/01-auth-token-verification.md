@@ -40,18 +40,23 @@ Incoming requests to protected routes must include:
 
 ### Token verification (`app/core/security.py`)
 
-1. On first use, fetch Cognito's public JWKS (JSON Web Key Set) from:
+1. On first use, fetch Cognito's public JWKS (JSON Web Key Set) asynchronously from:
    `https://cognito-idp.{AWS_REGION}.amazonaws.com/{COGNITO_USER_POOL_ID}/.well-known/jwks.json`
-2. Cache the fetched keys in memory. Do not re-fetch on every request. Only re-fetch if a token's `kid` (key ID) isn't found in the cached set (handles Cognito's occasional key rotation).
-3. Verify the incoming token using `python-jose`:
-   - Signature is valid against the matching public key
-   - Token is not expired (`exp` claim)
-   - `iss` (issuer) matches the expected Cognito User Pool URL
+2. Cache the fetched keys in memory (global variable). Do not re-fetch on every request. Once cached, reuse the cached keys for all subsequent token verifications.
+3. For each incoming token, extract its unverified header to get the `kid` (key ID) and find the matching key in the cached set.
+4. If the matching key is not found in the cached set, immediately return 401 (do not re-fetch; a missing key indicates an invalid or revoked token).
+5. Verify the incoming token using `python-jose` (jose library) with the matched public key:
+   - Signature is valid against the public key
+   - Token is not expired (`exp` claim, verified automatically by jwt.decode)
+   - `iss` (issuer) matches the expected Cognito User Pool URL exactly
    - `token_use` claim matches what's expected for this route: `id` for ID-token routes, `access` for access-token routes. Reject if it doesn't match, this stops an access token from being used where an ID token is required, and vice versa.
-   - For an ID token, `aud` matches `COGNITO_APP_CLIENT_ID`. For an access token, `client_id` matches `COGNITO_APP_CLIENT_ID` (access tokens don't have an `aud` claim on Cognito).
-4. On success, return the decoded claims. For an ID token, this includes `sub`, `email` if present, `cognito:groups` if present. `cognito:groups` is a list (e.g. `["electrician"]`) reflecting which Cognito Group(s) the user belongs to, this is how role is represented, there is no `custom:role` attribute on this pool. For an access token, claims are more limited (`sub`, `scope`, `client_id`), which is expected and fine since it's only used for the logout call.
-5. On any failure (expired, malformed, bad signature, wrong audience/issuer, wrong token_use, missing header), raise an `HTTPException` with status 401 and a generic message ("Invalid or expired token"). Do not leak details about which specific check failed.
-6. Expose two reusable FastAPI dependencies: `get_current_user` (requires and verifies an ID token, for routes that need identity/profile info) and `get_current_access_token` (requires and verifies an access token, for routes that need to call an AWS API on the user's behalf). Both share the same underlying verification logic, they only differ in which `token_use` they require.
+   - For an ID token, manually verify `aud` matches `COGNITO_APP_CLIENT_ID` (disable automatic verification with `options={"verify_aud": False}` during jwt.decode, then check manually). For an access token, manually verify `client_id` matches `COGNITO_APP_CLIENT_ID` (access tokens don't have an `aud` claim on Cognito).
+6. On success, return the decoded claims dict. For an ID token, this includes `sub`, `email` if present, `cognito:groups` if present. `cognito:groups` is a list (e.g. `["electrician"]`) reflecting which Cognito Group(s) the user belongs to, this is how role is represented, there is no `custom:role` attribute on this pool. For an access token, claims are more limited (`sub`, `scope`, `client_id`), which is expected and fine since it's only used for the logout call.
+7. On any failure (expired, malformed, bad signature, wrong audience/issuer, wrong token_use, missing header, key not found), raise an `HTTPException` with status 401 and a generic message ("Invalid or expired token"). Do not leak details about which specific check failed. Log failures at INFO level in general terms (e.g., "token verification failed: expired", "token verification failed: key not found").
+8. Expose reusable FastAPI dependencies:
+   - `get_current_user(authorization: Optional[str] = Header(None))` — requires and verifies an ID token, for routes that need identity/profile info. Returns decoded claims dict.
+   - `get_current_access_token(authorization: Optional[str] = Header(None))` — requires and verifies an access token, for routes that need to call an AWS API on the user's behalf. Returns decoded claims dict.
+   Both share the same underlying verification logic, they only differ in which `token_use` they require.
 
 ### `GET /auth/me` (`app/api/routes/auth.py`)
 
@@ -76,10 +81,16 @@ Incoming requests to protected routes must include:
 
 ## Acceptance criteria
 
-- [ ] A valid, unexpired **ID token** from a real Cognito test user returns 200 from `GET /auth/me` with correct claims, including `email` and `cognito:groups` when present.
-- [ ] Sending a valid **access token** to `GET /auth/me` returns 401 (wrong token type for this route).
-- [ ] A missing Authorization header returns 401 from `GET /auth/me`.
-- [ ] An expired or tampered token returns 401 from `GET /auth/me`.
-- [ ] `POST /auth/logout` with a valid **access token** returns 200, and that same access token can no longer be used successfully afterward.
-- [ ] Sending a valid **ID token** to `POST /auth/logout` returns 401 (wrong token type for this route).
-- [ ] JWKS fetch happens once and is reused across multiple requests (verify via a log line or debugger, not by re-fetching every call).
+- [ ] A valid, unexpired **ID token** from a real Cognito test user returns 200 from `GET /auth/me` with response body containing `sub` (non-null), `email` (null if not in token), and `cognito_groups` (null if not in token, otherwise a list of group names).
+- [ ] Sending a valid **access token** to `GET /auth/me` returns 401 with detail "Invalid or expired token" (token_use mismatch).
+- [ ] A missing Authorization header returns 401 with detail "Invalid or expired token" from `GET /auth/me`.
+- [ ] A malformed Authorization header (e.g., missing "Bearer" prefix or wrong format) returns 401 with detail "Invalid or expired token".
+- [ ] An expired token returns 401 with detail "Invalid or expired token".
+- [ ] A token with invalid signature returns 401 with detail "Invalid or expired token".
+- [ ] A token whose `aud` claim (for ID token) or `client_id` claim (for access token) doesn't match the configured `COGNITO_APP_CLIENT_ID` returns 401 with detail "Invalid or expired token".
+- [ ] A token with `kid` (key ID) that doesn't match any key in the cached JWKS returns 401 with detail "Invalid or expired token" (no re-fetch attempted).
+- [ ] `POST /auth/logout` with a valid, currently-active **access token** returns 200 with response body `{"message": "Logged out"}`, and that same access token can no longer be used successfully afterward (calling Cognito's `global_sign_out` invalidates it).
+- [ ] Sending a valid **ID token** to `POST /auth/logout` returns 401 with detail "Invalid or expired token" (token_use mismatch).
+- [ ] JWKS is fetched asynchronously once on first use and cached in memory, reused for all subsequent requests without re-fetching (verify by observing a single JWKS fetch on startup, then no additional fetches during multiple requests).
+- [ ] If Cognito's `global_sign_out` fails with `NotAuthorizedException`, return 401 with detail "Invalid or expired token".
+- [ ] If Cognito's `global_sign_out` fails with any other error, return 502 with detail "Service temporarily unavailable" (do not leak AWS error codes to the client).

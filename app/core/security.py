@@ -110,3 +110,12 @@ async def get_current_access_token(authorization: Optional[str] = Header(None)) 
 
     token = parts[1]
     return await verify_token(token, expected_token_use="access")
+
+
+async def get_current_electrician(authorization: Optional[str] = Header(None)) -> dict[str, Any]:
+    claims = await get_current_user(authorization)
+    groups = claims.get("cognito:groups", [])
+    if "electrician" not in groups:
+        logger.info(f"authorization failed: user {claims.get('sub')} is not in electrician group")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this resource")
+    return claims

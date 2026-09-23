@@ -5,8 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.core.dispatch import compute_and_broadcast_rounds
 from app.core.security import get_current_user
-from app.db.models import AppConfig, Order, RepairIssue, ServiceItem
+from app.db.models import Order, OrderSegment, RepairIssue, ServiceItem
 from app.db.session import get_db
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,6 @@ class OrderResponseModel(BaseModel):
     customer_id: str
     repair_issue_ids: list[int]
     service_item_ids: list[int]
-    visit_charge_applied: int
-    service_total: int
     total_amount: int
     status: str
     created_at: str
@@ -76,25 +75,17 @@ async def create_order(
             detail=f"Invalid IDs: {invalid_ids}",
         )
 
-    visit_charge_applied = 0
-    if repair_issue_ids:
-        app_config = db.query(AppConfig).first()
-        if app_config:
-            visit_charge_applied = app_config.repair_visit_charge
+    repair_issues = db.query(RepairIssue).filter(RepairIssue.id.in_(repair_issue_ids)).all() if repair_issue_ids else []
+    service_items = db.query(ServiceItem).filter(ServiceItem.id.in_(service_item_ids)).all() if service_item_ids else []
 
-    service_total = 0
-    if service_item_ids:
-        items = db.query(ServiceItem).filter(ServiceItem.id.in_(service_item_ids)).all()
-        service_total = sum(item.price for item in items)
-
-    total_amount = visit_charge_applied + service_total
+    service_total = sum(item.price for item in service_items)
+    repair_total = sum(issue.price for issue in repair_issues)
+    total_amount = repair_total + service_total
 
     order = Order(
         customer_id=customer_id,
         repair_issue_ids=repair_issue_ids,
         service_item_ids=service_item_ids,
-        visit_charge_applied=visit_charge_applied,
-        service_total=service_total,
         total_amount=total_amount,
         status="pending_assignment",
     )
@@ -103,15 +94,47 @@ async def create_order(
     db.commit()
     db.refresh(order)
 
+    specialization_groups = {}
+    for issue in repair_issues:
+        if issue.specialization not in specialization_groups:
+            specialization_groups[issue.specialization] = []
+        specialization_groups[issue.specialization].append(issue)
+
+    for specialization, issues in specialization_groups.items():
+        amount = sum(issue.price for issue in issues)
+        repair_issue_id = issues[0].id if issues else None
+        segment = OrderSegment(
+            order_id=order.id,
+            specialization=specialization,
+            repair_issue_id=repair_issue_id,
+            amount=amount,
+            status="open"
+        )
+        db.add(segment)
+
+    for item_id in service_item_ids:
+        service_item = db.query(ServiceItem).filter(ServiceItem.id == item_id).first()
+        if service_item:
+            segment = OrderSegment(
+                order_id=order.id,
+                specialization=service_item.specialization,
+                service_item_id=item_id,
+                amount=service_item.price,
+                status="open"
+            )
+            db.add(segment)
+
+    db.commit()
+
     logger.info(f"Order {order.id} created for customer {customer_id} with total ₹{total_amount}")
+
+    compute_and_broadcast_rounds(order.id)
 
     return OrderResponseModel(
         id=order.id,
         customer_id=order.customer_id,
         repair_issue_ids=order.repair_issue_ids,
         service_item_ids=order.service_item_ids,
-        visit_charge_applied=order.visit_charge_applied,
-        service_total=order.service_total,
         total_amount=order.total_amount,
         status=order.status,
         created_at=order.created_at.isoformat() if hasattr(order.created_at, 'isoformat') else str(order.created_at),
@@ -143,8 +166,6 @@ async def list_orders(
             customer_id=order.customer_id,
             repair_issue_ids=order.repair_issue_ids,
             service_item_ids=order.service_item_ids,
-            visit_charge_applied=order.visit_charge_applied,
-            service_total=order.service_total,
             total_amount=order.total_amount,
             status=order.status,
             created_at=order.created_at.isoformat() if hasattr(order.created_at, 'isoformat') else str(order.created_at),

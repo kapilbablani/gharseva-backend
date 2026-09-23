@@ -50,12 +50,14 @@ On app startup (in `app/main.py`), call `Base.metadata.create_all(engine)` so th
 
 ### `POST /users/me` (`app/api/routes/users.py`, a new route file)
 
-- Protected by the existing `get_current_user` dependency (ID token).
-- Look up a `User` row by `id == sub` from the token.
-- If it exists, return it as-is (200), do not modify it. This call is idempotent.
-- If it does not exist, create it using `sub`, `email`, `phone_number` (if present in the token), and `role` derived from `cognito:groups` (take the first group name; if `cognito:groups` is empty or missing, return 400, a user must belong to a group before a profile can be created, this indicates something went wrong upstream in Cognito setup, not a normal case).
-- Return the created or existing row as JSON: `id`, `email`, `phone_number`, `role`, `created_at`.
-- Response model must be a Pydantic model, not the raw SQLAlchemy object.
+- Protected by the existing `get_current_user` dependency (requires an ID token with verified claims).
+- Extract the following from the verified token claims: `sub`, `email` (optional), `phone_number` (optional), `cognito:groups` (required, must be a non-empty list).
+- If `cognito:groups` is missing or empty, return 400 with message "User must belong to a group" — a user must belong to a Cognito Group before a profile can be created; this indicates an issue with upstream Cognito setup, not a normal case.
+- Query the `User` table for an existing row where `id == sub`.
+  - If found, return 200 with the existing user's data (unchanged). This call is idempotent; calling it multiple times returns the same result without creating duplicates.
+  - If not found, create a new `User` row with: `id` = `sub`, `email` = email from claims (may be None), `phone_number` = phone_number from claims (may be None), `role` = first element of `cognito:groups` list (since each user must belong to at least one group). Commit to database, then return 201 with the newly created user's data.
+- Response is a Pydantic model (`UserResponse`) with fields: `id`, `email` (nullable), `phone_number` (nullable), `role`, `created_at`.
+- All returned User objects must be serialized through the response Pydantic model to ensure consistent JSON shape, never return raw SQLAlchemy objects.
 
 ## Non-functional requirements
 
@@ -65,8 +67,9 @@ On app startup (in `app/main.py`), call `Base.metadata.create_all(engine)` so th
 
 ## Acceptance criteria
 
-- [ ] Calling `POST /users/me` for the first time with a valid ID token creates a row and returns 200 with the correct `id`, `email`, `phone_number`, `role`.
-- [ ] Calling it again with the same token returns 200 with the same data, and does not create a second row (verify by checking the table has exactly one row for that `sub`).
-- [ ] A token whose `cognito:groups` is missing or empty returns 400, not a 500 crash.
-- [ ] Missing or invalid Authorization header returns 401 (same behavior as `/auth/me`, via the shared dependency).
-- [ ] An access token (instead of ID token) sent to this endpoint returns 401 (wrong token type, same rule as `/auth/me`).
+- [ ] Calling `POST /users/me` for the first time with a valid ID token creates a User row in the database and returns 200 with the correct `id`, `email`, `phone_number`, `role`, `created_at`.
+- [ ] Calling it again with the same token returns 200 with the same data (no changes to the row, fully idempotent), verified by checking the database has exactly one row for that `sub` with no duplicate entries.
+- [ ] A token whose `cognito:groups` is missing or empty returns 400 with detail "User must belong to a group", not a 500 crash.
+- [ ] Missing or invalid Authorization header returns 401 with detail "Invalid or expired token" (delegated to the shared `get_current_user` dependency).
+- [ ] An access token (instead of ID token) sent to this endpoint returns 401 (wrong token type; delegated to the shared `get_current_user` dependency which requires an ID token).
+- [ ] The response is always a JSON object with `id`, `email` (may be null), `phone_number` (may be null), `role` (non-null), and `created_at` (ISO 8601 datetime string), never a partial or raw SQLAlchemy object.
