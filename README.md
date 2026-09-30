@@ -34,109 +34,84 @@ GharSeva is a trusted digital platform where customers can easily book verified 
 
 ---
 
-# PHASE 1: THE BASICS (Weeks 4-12)
+# PHASE 1: THE BASICS (In Progress)
 **"Book a Verified Electrician in Your Area"**
 
-Phase 1 intentionally supports exactly **three roles**: Customer, Electrician, and Admin. No other service category or role is introduced until Phase 2. This keeps the first version narrow, testable, and easy to get right before expanding.
+Phase 1 focuses on **three roles**: Customer, Electrician, and Admin. Single service category (Electrician) with two work types: Repair and Service.
+
+## Currently Implemented
 
 ### For Customers
 
-**What You Can Do:**
-1. **Choose a category**
-   - **Repair** — something's broken or not working, visit charge of ₹300 covers the visit and any number of issues fixed during that visit (fan repair, AC repair, light/switch repair, socket repair, other)
-   - **Service** — new installation or a fixed-scope job, priced per item upfront (e.g. Fan installation ₹1,000, AC installation ₹4,000, AC gas filling ₹5,000, Switchboard installation ₹800)
-   - Customers can select multiple items from Repair and Service together in a single visit, and pay once for the combined total
+**What's Working:**
+1. **Sign up & Authentication**
+   - Register via Cognito
+   - Login/logout with JWT tokens
+   - Account verified by role assignment (Cognito Groups)
 
-2. **Book a Service** (Simple steps)
-   - Select Repair and/or Service items
-   - Describe the issue (text + photos, optional)
-   - Confirm address
-   - Choose date & time slot
-   - Review combined total and confirm booking
+2. **Browse & Book Services**
+   - View repair issues (General repair ₹300, AC repair ₹1000, Refrigerator repair ₹500, Mixer grinder repair ₹500)
+   - View service items (Fan installation ₹1000, AC installation ₹4000, AC gas filling ₹5000, Switchboard installation ₹800)
+   - Select any combination of repair issues and service items
+   - Total price calculated automatically (sum of all items)
+   - Confirmation before booking
 
-3. **Find the Right Electrician**
-   - Nearby verified electricians shown for the slot
-   - View ratings, experience, and reviews before booking, or let the system auto-assign the nearest available one
-   - Call or chat directly once assigned
+3. **After Booking**
+   - Order placed in "pending_assignment" status
+   - System automatically creates dispatch rounds to find matching electricians
+   - Order splits into segments by specialization for flexible assignment
+   - View all your orders and their current status
 
-4. **Service Experience**
-   - Real-time tracking (on the way, arrived, in progress)
-   - Live chat/call support
-   - Status updates at each stage
-
-5. **Payment**
-   - Pay upfront or after work is done (configurable per booking)
-   - Multiple payment options (UPI, Card, Cash)
-
-6. **Rate & Review**
-   - 5-star rating system
-   - Feedback on quality, behavior, and punctuality
-   - Helps other customers choose
+**Coming Soon in Phase 1:**
+- Address/location confirmation
+- Date & time slot selection
+- Real-time electrician tracking
+- Payment processing (UPI, Card, Cash)
+- Rating and review system
+- Chat/call support
 
 ### For Electricians
 
-**What You Can Do:**
-1. **Create Your Profile**
-   - Upload your photo and years of experience
-   - Set your service area (pincode/locality in Dewas)
-   - Share photos of past work
+**What's Working:**
+1. **Sign up & Authentication**
+   - Register via Cognito
+   - Login/logout with JWT tokens
+   - Account verified by role assignment (Cognito Groups)
 
-2. **Get Verified**
-   - Mobile number verification
-   - Government ID verification (Aadhaar/Voter ID)
-   - Address verification
-   - Certificate/work history review
-   - Approval usually takes 1-2 days before you can start receiving jobs
+2. **Set Your Skills**
+   - Declare specializations you can handle (e.g., general_repair, ac_repair, fan_installation, ac_installation, etc.)
+   - Update your skills anytime
+   - System uses this to send you matching jobs
 
-3. **Receive Job Requests**
-   - Get notified for nearby customers needing Repair or Service work
-   - See job details (location, selected items, customer's description, distance, price)
-   - Accept or decline
+3. **Receive & Accept Jobs**
+   - When an order matches your skills, you're added to a dispatch round
+   - Accept or skip rounds that are offered to you
+   - When you accept, all segments in that round are assigned to you
+   - View details of accepted segments (work type, price, customer info)
 
-4. **Manage Your Work**
-   - Confirm appointment with customer
-   - Update job status (On the way → Started → Completed)
-   - Take photos of completed work
-   - Get payment directly to your bank account
-
-5. **Build Your Reputation**
-   - See your total jobs completed
-   - Monitor your rating score
-   - Get more job requests as your rating improves
+**Coming Soon in Phase 1:**
+- Electrician profile (photo, experience, service area)
+- Government ID & address verification (KYC)
+- Payment tracking and bank transfers
+- Job status updates (On the way → In progress → Completed)
+- Photo upload for completed work
+- Rating system
 
 ### For Admin (You)
 
-**What You Can Control:**
-1. **Dashboard Overview**
-   - Total customers and electricians
-   - Active jobs today
-   - Completed jobs
-   - Revenue and earnings
+**What's Working:**
+- Database tables for users, orders, segments, electricians, skills, dispatch rounds
+- API endpoints for managing the system
+- Service catalog management (repair issues and service items)
+- Order creation and assignment workflow
+- Dispatch system that automatically groups and broadcasts rounds
 
-2. **Electrician Management**
-   - Approve new electrician registrations
-   - Verify KYC and address
-   - Manage suspensions if needed
-   - View work history and ratings
-
-3. **Customer Management**
-   - Monitor customer complaints
-   - Track booking history
-   - Handle disputes
-
-4. **Booking Oversight**
-   - View all active bookings
-   - Monitor job completion
-   - Track cancellations
-
-5. **Service Catalog Management**
-   - Update the Repair visit charge
-   - Add, edit, or remove fixed-price Service items and their prices
-
-6. **Reports**
-   - Daily/weekly business summary
-   - Electrician performance metrics
-   - Customer satisfaction trends
+**Coming Soon in Phase 1:**
+- Admin dashboard with overview stats
+- Electrician verification workflow (KYC approval/rejection)
+- Customer complaint handling
+- Booking oversight and cancellation management
+- Reports and analytics
 
 ---
 
@@ -330,30 +305,33 @@ Phase 2 is where GharSeva expands beyond electricians into a true multi-category
 
 ---
 
-## Pricing You'll See
+## Current Service Pricing (Phase 1 - Electrician)
 
-### For Customers (Phase 1 - Electrician)
+### Repair Issues
+- General repair: ₹300
+- AC repair: ₹1,000
+- Refrigerator repair: ₹500
+- Mixer grinder repair: ₹500
 
-**Repair** (visit charge, covers multiple issues in one visit)
-- Visit charge: ₹300 flat, adjusted into the final bill
-- Covers: fan repair, AC repair, light/switch repair, socket repair, other electrical issues
-
-**Service** (fixed price per item, multiple items can be selected together)
+### Service Items (Installation/Fixed-Scope Work)
 - Fan installation: ₹1,000
 - AC installation: ₹4,000
 - AC gas filling: ₹5,000
 - Switchboard installation: ₹800
 
-A customer can select Repair and Service items together in one visit; the app sums the ₹300 visit charge (if any repair items are selected) plus the price of each selected Service item into one combined total and one payment.
+**How Pricing Works:**
+- Customers select any combination of repair issues and service items
+- Final price = sum of all selected items
+- One payment per order, regardless of number of items
 
-### For Electricians
+### For Electricians (Coming Soon)
 
 **How You Earn**
-- GharSeva takes 10% commission
+- GharSeva will take 10% commission
 - You keep 90% of the job price
 - Direct payment to your bank account
 
-**Optional: Premium Provider Plan**
+**Optional: Premium Provider Plan (Future)**
 - Monthly subscription: ₹500-1000
 - Get priority in provider listings
 - More bookings from visibility boost
@@ -394,15 +372,122 @@ Every electrician must complete:
 
 ## Emergency Services
 
-**Available in Phase 1**
+**Coming in Phase 1**
 
 When you need urgent electrical help:
-- 🚨 EMERGENCY button in the app
+- 🚨 EMERGENCY button in the app (to be implemented)
 - Premium service fee for immediate response
 - Available for:
   - Sudden power outages
   - Sparking/short-circuit issues
   - Critical electrical repairs
+
+## API Setup & Development
+
+### Prerequisites
+
+- Python 3.10+
+- PostgreSQL (for production) or SQLite (for development)
+- AWS Cognito configured (for authentication)
+- Environment variables set (.env file)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repo-url>
+cd gharseva-backend
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Configuration
+
+Create a `.env` file with your Cognito credentials:
+
+```env
+COGNITO_DOMAIN=your-cognito-domain
+COGNITO_CLIENT_ID=your-client-id
+COGNITO_REGION=us-east-1
+DATABASE_URL=sqlite:///./gharseva.db  # or postgresql://user:pass@localhost/gharseva
+```
+
+### Run the Backend
+
+```bash
+# Start the FastAPI server
+uvicorn app.main:app --reload --port 8000
+
+# The API will be available at http://localhost:8000
+# Interactive docs at http://localhost:8000/docs
+```
+
+### API Endpoints Overview
+
+**Authentication**
+- `GET /auth/me` - Get current user claims
+- `POST /auth/logout` - Logout from Cognito
+
+**Services**
+- `GET /services` - Get all repair issues and service items
+
+**Orders (Customer)**
+- `POST /orders` - Create a new order
+- `GET /orders/me` - List your orders
+
+**Electricians**
+- `POST /electricians/me/skills` - Set your specializations
+- `GET /electricians/me/skills` - Get your specializations
+- `POST /electricians/jobs/rounds/{round_id}/accept` - Accept a dispatch round
+
+**Users**
+- `POST /users/me` - Create/update your profile
+
+### Database
+
+- Automatically initialized on app startup via `Base.metadata.create_all()`
+- Development: SQLite file-based database
+- Production: PostgreSQL recommended
+- Seeded with default catalog (repair issues and service items)
+
+## Tech Stack
+
+- **Framework**: FastAPI (async Python web framework)
+- **Authentication**: AWS Cognito (JWT-based with RS256 signature validation)
+- **Database**: SQLAlchemy ORM with SQLite (dev) / PostgreSQL (prod)
+- **Job Scheduling**: APScheduler (for background tasks like dispatch expiration)
+- **Config Management**: Pydantic settings with environment variables
+- **Python Version**: 3.10+
+
+## Project Structure
+
+```
+app/
+├── main.py                    # FastAPI app, DB init, catalog seeding
+├── core/
+│   ├── config.py             # Settings from .env
+│   ├── security.py           # Cognito token verification & auth deps
+│   └── dispatch.py           # Order dispatch & round creation logic
+├── db/
+│   ├── models.py             # SQLAlchemy models (User, Order, Segment, etc)
+│   └── session.py            # Database session management
+└── api/routes/
+    ├── auth.py               # /auth/me, /auth/logout
+    ├── users.py              # /users/me
+    ├── services.py           # /services (catalog)
+    ├── orders.py             # /orders, /orders/me
+    └── electricians.py       # Electrician skills & round acceptance
+```
 
 ---
 
@@ -437,16 +522,15 @@ Unlike other job platforms, GharSeva isn't just about one-off gig work.
 
 ---
 
-## Launch Timeline for Dewas
+## Development Timeline
 
-| Timeline | What Happens |
-|----------|-------------|
-| **Week 1-3** | Brand finalized, branding, domain setup |
-| **Week 4-6** | Find and verify first 20-30 electricians |
-| **Week 7-10** | App beta testing with 100 users |
-| **Week 11-12** | Final bug fixes, performance improvements |
-| **Week 13** | 🎉 Official Dewas Launch |
-| **Week 14+** | Marketing, customer acquisition, expansion prep |
+| Phase | Timeline | Status |
+|-------|----------|--------|
+| **Foundation** | Week 1-3 | ✅ Complete - Backend setup, database, auth configured |
+| **Core APIs** | Week 4-8 | 🔄 In Progress - Orders, dispatch, electrician skills |
+| **Testing & Verification** | Week 9-11 | ⏳ Upcoming - Beta testing, electrician KYC workflow |
+| **Launch Prep** | Week 12 | ⏳ Upcoming - Performance, payment integration, notifications |
+| **🎉 Dewas Launch** | Week 13+ | ⏳ Planned - Marketing, customer acquisition |
 
 ---
 
@@ -482,95 +566,125 @@ This single category has frequent, repeat demand—ideal for a first, controlled
 
 ## What Customers Will Experience
 
-### Customer Journey (Phase 1)
+### Customer Journey (Phase 1 - Currently Available)
 
-**Day 1: Discovery**
-- Downloads app
-- Creates account (mobile number + location)
-- Sees the two entry points: Repair and Service
+**Step 1: Sign Up & Login**
+- Register with email via Cognito
+- Login to access the app
+- Get verified as a customer
 
-**Day 2: Booking**
-- "My bathroom light switch isn't working, and I also want a new fan installed"
-- Selects "Light/switch repair" under Repair and "Fan installation" under Service
-- Uploads 1-2 photos (optional)
-- Confirms location
-- Picks tomorrow, 10 AM - 12 PM slot
-- Sees combined total (₹300 visit charge + ₹1,000 fan installation = ₹1,300)
-- Sees nearby electricians available, or lets the app auto-assign
-- Confirms booking and pays
+**Step 2: Browse Services**
+- See all available repair issues and service items
+- View prices for each option
 
-**Day 3: Service Day**
-- Receives confirmation message 1 hour before
-- Sees real-time location of electrician coming
-- Electrician arrives, fixes the switch and installs the fan
-- Electrician clicks "Work Complete" in app
-- Customer rates: "5 stars - Excellent work, on time!"
+**Step 3: Create an Order** (Currently Working)
+- Select one or more repair issues (e.g., "General repair ₹300", "AC repair ₹1000")
+- Select one or more service items (e.g., "Fan installation ₹1000")
+- System calculates total price automatically
+- Confirm and place the order
+
+**Step 4: Automatic Dispatch**
+- Order is sent to matching electricians based on the services needed
+- System waits for an electrician to accept the round
+
+**Coming Soon:**
+- Choose date and time slot for the service
+- Upload photos/description of the issue
+- Confirm delivery address
+- Pay via UPI, Card, or Cash
+- Receive real-time updates when electrician accepts, is on the way, and arrives
+- Rate the electrician after completion (1-5 stars)
 
 ---
 
 ## What Electricians Will Experience
 
-### Electrician Journey (Phase 1)
+### Electrician Journey (Phase 1 - Currently Available)
 
-**Week 1: Onboarding**
-- Registers on app
-- Uploads photo, ID, work portfolio, years of experience, service area
-- Completes verification (admin checks)
-- Gets "Verified" badge, usually within 1-2 days
+**Step 1: Sign Up & Login** (Working)
+- Register with email via Cognito
+- Login to the app
+- Get verified as an electrician
 
-**Week 2: Receiving Work**
-- Gets notification: "New Job: Switch repair + Fan installation, 2.5 km away"
-- Sees customer's selected items, address, and total price (₹1,300)
-- Accepts job
-- Confirms appointment with customer
+**Step 2: Declare Your Skills** (Currently Working)
+- Set your specializations (e.g., general_repair, ac_repair, fan_installation, ac_installation, etc.)
+- Update anytime as you gain new skills
+- System uses this to send you matching jobs
 
-**Day of Job**
-- Updates status: "On the way"
-- Arrives and starts work
-- Customer confirms job completion
-- Takes completion photo
-- Gets payment in bank account
+**Step 3: Receive & Accept Jobs** (Currently Working)
+- When orders match your specializations, you're added to dispatch rounds
+- View the details of the round: what needs to be done and the total amount
+- Accept or skip each round
+- When you accept, you get all the segments in that round
+- See the breakdown: which repairs/installations and their prices
 
-**Week 4+**
-- Has completed 15 jobs
-- Has 4.7 star rating
-- Regularly gets 3-4 job requests per week
-- Earns ₹4000-5000 per week
-
----
-
-## Not Yet Implemented (But Coming)
-
-### Things We DON'T Have in Phase 1
-- Other service categories: Plumber, Mason, Carpenter, Painter (coming in Phase 2)
-- Construction project bidding (coming in Phase 3)
-- Material marketplace (coming in Phase 4)
-- Home design consultations (coming in Phase 4)
-- Team management for contractors (coming in Phase 3)
-- Insurance integration (future phase)
-
-We're intentionally keeping Phase 1 to one category and three roles—Customer, Electrician, Admin—so we can get reliability right before adding more. Perfect reliability > lots of features.
+**Coming Soon:**
+- Verify your profile: government ID, address, work portfolio
+- Get a "Verified" badge after admin approval
+- Receive real-time notifications for new job opportunities
+- Update job status as you work (On the way → In progress → Completed)
+- Upload photos of completed work
+- Track your earnings and receive payments to your bank account
+- See your rating score and customer reviews
+- Get more job requests as your rating improves
 
 ---
 
-## Our First Success Metrics
+## Not Yet Implemented
 
-By end of Week 24 (6 months), success means:
+### Still Being Built in Phase 1
+- Electrician profile verification (KYC, government ID, address verification)
+- Admin dashboard and verification workflow
+- Payment processing (UPI, Card, Cash)
+- Job completion tracking and work photo uploads
+- Customer rating and review system
+- Real-time job notifications (SMS/push/email)
+- Job status updates (On the way → In progress → Completed)
+- Chat/call support between customer and electrician
+- Address and location management for customers
+- Time slot selection and booking scheduling
+- Customer complaint handling and dispute resolution
 
-**Customer Side**
-- 500+ active customers in Dewas
+### Phase 2+ (Future)
+- Other service categories: Plumber, Mason, Carpenter, Painter
+- Multiple service items per segment (currently stores only first item per specialization)
+- Electrician location-based matching and availability calendars
+- Featured provider subscription and premium listings
+- Construction project bidding (Phase 3)
+- Material marketplace (Phase 4)
+- Home design consultations (Phase 4)
+- Team management for contractors (Phase 3)
+- Insurance integration
+
+We're intentionally keeping Phase 1 to one category and core features so we can get reliability and quality right before expanding. Perfect reliability > lots of features.
+
+---
+
+## Success Metrics (Phase 1)
+
+### Development Milestones (In Progress)
+- Core APIs complete and tested: auth, orders, dispatch, electrician skills
+- Cognito integration working for customer and electrician signup/login
+- Database schema finalized with all Phase 1 models
+- Dispatch algorithm handles segment grouping and round creation
+- Background job processing for expired rounds
+
+### Launch Targets (For Dewas)
+
+**Customer Metrics**
+- 500+ active customers by end of Phase 1
 - 100+ completed bookings per week
-- 4.3+ average rating
+- 4.3+ average rating from reviews
 
-**Electrician Side**
-- 20-30 verified electricians onboarded, growing steadily
-- 70%+ actively accepting jobs
-- Average ₹15000+ per electrician per month
+**Electrician Metrics**
+- 20-30 verified electricians onboarded
+- 70%+ actively accepting job rounds
+- Average ₹15,000+ per electrician per month
 
 **Business Metrics**
-- ₹1-2 lakh monthly revenue (single-category Phase 1 scale)
-- 10% customer repeat rate
-- 95%+ service completion rate
+- ₹1-2 lakh monthly revenue (single-category scale)
+- 10% customer repeat booking rate
+- 95%+ job completion rate
 
 ---
 
